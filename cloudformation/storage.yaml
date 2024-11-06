@@ -1,0 +1,50 @@
+AWSTemplateFormatVersion: "2010-09-09"
+
+Resources:
+    KnowledgeStorageKey:
+        Type: "AWS::KMS::Key"
+        Properties:
+            EnableKeyRotation: true
+            KeyPolicy:
+                Version: "2012-10-17"
+                Statement:
+                    -
+                        Effect: "Allow"
+                        Principal:
+                            AWS: !Sub "arn:${AWS::Partition}:iam::${AWS::AccountId}:root"
+                        Action: "kms:*"
+                        Resource: "*"
+                    -
+                        Effect: "Allow"
+                        Principal: "*"
+                        Action:
+                            - "kms:CreateGrant"
+                            - "kms:DescribeKey"
+                        Resource: "*"
+                        Condition:
+                            StringEquals:
+                                "kms:ViaService": !Sub "aoss.${AWS::Region}.amazonaws.com"
+                            Bool:
+                                "kms:GrantIsForAWSResource": "true"
+
+    KnowledgeStorage:
+        Type: "AWS::S3::Bucket"
+        Properties:
+            OwnershipControls:
+                Rules:
+                    -
+                        ObjectOwnership: "BucketOwnerEnforced"
+            PublicAccessBlockConfiguration:
+                BlockPublicAcls: true
+                BlockPublicPolicy: true
+                IgnorePublicAcls: true
+                RestrictPublicBuckets: true
+            BucketEncryption:
+                ServerSideEncryptionConfiguration:
+                    -
+                        BucketKeyEnabled: true
+                        ServerSideEncryptionByDefault:
+                            SSEAlgorithm: "aws:kms"
+                            KMSMasterKeyID: !GetAtt "KnowledgeStorageKey.Arn"
+            VersioningConfiguration:
+                Status: "Enabled"
