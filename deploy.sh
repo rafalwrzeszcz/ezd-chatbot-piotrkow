@@ -19,4 +19,10 @@ aws cloudformation deploy \
 aws cloudformation deploy \
     --stack-name "${stack_prefix}-storage" \
     --template-file "cloudformation/storage.yaml" \
-    --tags stage:name=${env_name}
+    --tags stage:name=${env_name} \
+    --parameter-overrides "CustomerName=${customer_name}"
+aws cloudformation deploy \
+    --stack-name "${stack_prefix}-open-search" \
+    --template-file "cloudformation/open-search.yaml" \
+    --tags stage:name=${env_name} \
+    --parameter-overrides "CustomerName=${customer_name}"

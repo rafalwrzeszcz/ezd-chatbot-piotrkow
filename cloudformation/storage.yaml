@@ -1,5 +1,9 @@
 AWSTemplateFormatVersion: "2010-09-09"
 
+Parameters:
+    CustomerName:
+        Type: "String"
+
 Resources:
     KnowledgeStorageKey:
         Type: "AWS::KMS::Key"
@@ -48,3 +52,9 @@ Resources:
                             KMSMasterKeyID: !GetAtt "KnowledgeStorageKey.Arn"
             VersioningConfiguration:
                 Status: "Enabled"
+
+Outputs:
+    EncryptionKeyArn:
+        Value: !GetAtt "KnowledgeStorageKey.Arn"
+        Export:
+            Name: !Sub "${CustomerName}:storage:KnowledgeStorageKey:Arn"

@@ -1,0 +1,61 @@
+AWSTemplateFormatVersion: "2010-09-09"
+
+Parameters:
+    CustomerName:
+        Type: "String"
+
+Resources:
+    VectorSearchCollection:
+        Type: "AWS::OpenSearchServerless::Collection"
+        DependsOn:
+            - "VectorSearchEncryption"
+        Properties:
+            Name: !Sub "vector-search-${CustomerName}"
+            Type: "VECTORSEARCH"
+
+    VectorSearchEncryption:
+        Type: "AWS::OpenSearchServerless::SecurityPolicy"
+        Properties:
+            Name: !Sub "search-encryption-${CustomerName}"
+            Type: "encryption"
+            Policy:
+                "Fn::Sub":
+                    - |
+                        {
+                            "Rules": [
+                                {
+                                    "ResourceType": "collection",
+                                    "Resource": [
+                                        "collection/vector-search-${CustomerName}"
+                                    ]
+                                }
+                            ],
+                            "AWSOwnedKey": false,
+                            "KmsARN": "${KnowledgeStorageKeyArn}"
+                        }
+                    -
+                        KnowledgeStorageKeyArn:
+                            "Fn::ImportValue": !Sub "${CustomerName}:storage:KnowledgeStorageKey:Arn"
+
+    VectorSearchNetworkAccess:
+        Type: "AWS::OpenSearchServerless::SecurityPolicy"
+        Properties:
+            Name: !Sub "search-access-${CustomerName}"
+            Type: "network"
+            Policy: !Sub |
+                [
+                    {
+                        "Rules": [
+                            {
+                                "ResourceType": "collection",
+                                "Resource": [
+                                    "collection/vector-search-${CustomerName}"
+                                ]
+                            }
+                        ],
+                        "AllowFromPublic": false,
+                        "SourceServices": [
+                            "bedrock.amazonaws.com"
+                        ]
+                    }
+                ]
