@@ -26,3 +26,9 @@ aws cloudformation deploy \
     --template-file "cloudformation/open-search.yaml" \
     --tags stage:name=${env_name} \
     --parameter-overrides "CustomerName=${customer_name}"
+aws cloudformation deploy \
+    --stack-name "${stack_prefix}-knowledge-base" \
+    --template-file "cloudformation/knowledge-base.yaml" \
+    --tags stage:name=${env_name} \
+    --parameter-overrides "CustomerName=${customer_name}" \
+    --capabilities CAPABILITY_AUTO_EXPAND CAPABILITY_IAM

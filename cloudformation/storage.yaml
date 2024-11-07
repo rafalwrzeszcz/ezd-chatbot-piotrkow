@@ -54,6 +54,11 @@ Resources:
                 Status: "Enabled"
 
 Outputs:
+    KnowledgeStorageArn:
+        Value: !GetAtt "KnowledgeStorage.Arn"
+        Export:
+            Name: !Sub "${CustomerName}:storage:KnowledgeStorage:Arn"
+
     EncryptionKeyArn:
         Value: !GetAtt "KnowledgeStorageKey.Arn"
         Export:

@@ -1,0 +1,141 @@
+AWSTemplateFormatVersion: "2010-09-09"
+
+Transform:
+    - "WrzasqPlCformMacro"
+
+Parameters:
+    CustomerName:
+        Type: "String"
+    VectorStorageEmbeddingModel:
+        Type: "String"
+        Default: "amazon.titan-embed-text-v1"
+
+Resources:
+    KnowledgeBaseRole:
+        Type: "AWS::IAM::Role"
+        Properties:
+            AssumeRolePolicyDocument:
+                -
+                    Effect: "Allow"
+                    Principal:
+                        Service: "bedrock.amazonaws.com"
+                    Action: "sts:AssumeRole"
+                    Condition:
+                        StringEquals:
+                            "aws:SourceAccount": !Ref "AWS::AccountId"
+                        ArnLike:
+                            "aws:SourceArn": !Sub "arn:${AWS::Partition}:bedrock:${AWS::Region}:${AWS::AccountId}:knowledge-base/*"
+            Policies:
+                EnableBedrockModelsAccess:
+                    -
+                        Effect: "Allow"
+                        Action:
+                            - "bedrock:ListCustomModels"
+                            - "bedrock:ListFoundationModels"
+                        Resource: "*"
+                    -
+                        Effect: "Allow"
+                        Action:
+                            - "bedrock:InvokeModel"
+                        Resource:
+                            - !Sub "arn:${AWS::Partition}:bedrock:${AWS::Region}::foundation-model/${VectorStorageEmbeddingModel}"
+                EnableDataSourceAccess:
+                    -
+                        Effect: "Allow"
+                        Action:
+                            - "s3:GetObject"
+                        Resource:
+                            -
+                                "Fn::Sub":
+                                    - "${KnowledgeStorage}/*"
+                                    -
+                                        KnowledgeStorage:
+                                            "Fn::ImportValue": !Sub "${CustomerName}:storage:KnowledgeStorage:Arn"
+                        Condition:
+                            StringEquals:
+                                "aws:PrincipalAccount": !Ref "AWS::AccountId"
+                    -
+                        Effect: "Allow"
+                        Action:
+                            - "s3:ListBucket"
+                        Resource:
+                            -
+                                "Fn::ImportValue": !Sub "${CustomerName}:storage:KnowledgeStorage:Arn"
+                        Condition:
+                            StringEquals:
+                                "aws:PrincipalAccount": !Ref "AWS::AccountId"
+                    -
+                        Effect: "Allow"
+                        Action:
+                            - "kms:Decrypt"
+                            - "kms:GenerateDataKey"
+                        Resource:
+                            -
+                                "Fn::ImportValue": !Sub "${CustomerName}:storage:KnowledgeStorageKey:Arn"
+                EnableOpenSearchApi:
+                    -
+                        Effect: "Allow"
+                        Action:
+                            - "aoss:APIAccessAll"
+                        Resource:
+                            -
+                                "Fn::ImportValue": !Sub "${CustomerName}:open-search:VectorSearchCollection:Arn"
+
+    VectorSearchDataAccess:
+        Type: "AWS::OpenSearchServerless::AccessPolicy"
+        Properties:
+            Name: !Sub "search-access-${CustomerName}"
+            Type: "data"
+            Policy: !Sub |
+                [
+                    {
+                        "Rules": [
+                            {
+                                "ResourceType": "collection",
+                                "Resource": [
+                                    "collection/vector-search-${CustomerName}"
+                                ],
+                                "Permission": [
+                                    "aoss:*"
+                                ]
+                            },
+                            {
+                                "ResourceType": "index",
+                                "Resource": [
+                                    "index/vector-search-${CustomerName}/bedrock-data"
+                                ],
+                                "Permission": [
+                                    "aoss:*"
+                                ]
+                            }
+                        ],
+                        "Principal": [
+                            "${KnowledgeBaseRole.Arn}"
+                        ]
+                    },
+                    {
+                        "Rules": [
+                            {
+                                "ResourceType": "collection",
+                                "Resource": [
+                                    "collection/vector-search-${CustomerName}"
+                                ],
+                                "Permission": [
+                                    "aoss:*"
+                                ]
+                            },
+                            {
+                                "ResourceType": "index",
+                                "Resource": [
+                                    "index/vector-search-${CustomerName}/*"
+                                ],
+                                "Permission": [
+                                    "aoss:*"
+                                ]
+                            }
+                        ],
+                        "Principal": [
+                            "arn:aws:iam::${AWS::AccountId}:root"
+                        ]
+                    }
+                ]
