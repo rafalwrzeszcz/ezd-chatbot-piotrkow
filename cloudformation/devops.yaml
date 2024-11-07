@@ -1,0 +1,16 @@
+AWSTemplateFormatVersion: "2010-09-09"
+
+Transform:
+    - "AWS::Serverless-2016-10-31"
+
+Parameters:
+    WrzasqPlCformVersion:
+        Type: "String"
+
+Resources:
+    WrzasqPlCformMacro:
+        Type: "AWS::Serverless::Application"
+        Properties:
+            Location:
+                ApplicationId: "arn:aws:serverlessrepo:eu-central-1:117504620086:applications/wrzasqpl-cform-macro"
+                SemanticVersion: !Ref "WrzasqPlCformVersion"
